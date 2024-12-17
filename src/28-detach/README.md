@@ -1,58 +1,130 @@
-# 在用户态应用退出后运行 eBPF 程序：eBPF 程序的生命周期
+# Running eBPF After Application Exits: The Lifecycle of eBPF Programs
 
-通过使用 detach 的方式运行 eBPF 程序，用户空间加载器可以退出，而不会停止 eBPF 程序。
+eBPF (Extended Berkeley Packet Filter) is a revolutionary technology in the Linux kernel that allows users to execute custom programs in kernel space without modifying the kernel source code or loading any kernel modules. This provides developers with great flexibility to observe, modify, and control the Linux system.
 
-## eBPF 程序的生命周期
+This article introduces the Lifecycle of eBPF Programs, how to run eBPF programs after user-space application exits, and how to use pin to share eBPF objects between processes. This article is part of the eBPF Developer Tutorial, more details can be found in <https://github.com/eunomia-bpf/bpf-developer-tutorial> and <https://eunomia.dev/tutorials>
 
-首先，我们需要了解一些关键的概念，如 BPF 对象（包括程序，地图和调试信息），文件描述符 (FD)，引用计数（refcnt）等。在 eBPF 系统中，用户空间通过文件描述符访问 BPF 对象，而每个对象都有一个引用计数。当一个对象被创建时，其引用计数初始为1。如果该对象不再被使用（即没有其他程序或文件描述符引用它），它的引用计数将降至0，并在 RCU 宽限期后被内存清理。
+By using the detach method to run eBPF programs, the user space loader can exit without stopping the eBPF program. Another common use case for pinning is sharing eBPF objects between processes. For example, one could create a Map from Go, pin it, and inspect it using `bpftool map dump pinned /sys/fs/bpf/my_map`.
 
-接下来，我们需要了解 eBPF 程序的生命周期。首先，当你创建一个 BPF 程序，并将它连接到某个“钩子”（例如网络接口，系统调用等），它的引用计数会增加。然后，即使原始创建和加载该程序的用户空间进程退出，只要 BPF 程序的引用计数大于 0，它就会保持活动状态。然而，这个过程中有一个重要的点是：不是所有的钩子都是相等的。有些钩子是全局的，比如 XDP、tc's clsact 和 cgroup-based 钩子。这些全局钩子会一直保持 BPF 程序的活动状态，直到这些对象自身消失。而有些钩子是局部的，只在拥有它们的进程存活期间运行。
+## The Lifecycle of eBPF Programs
 
-对于 BPF 对象（程序或映射）的生命周期管理，另一个关键的操作是“分离”（detach）。这个操作会阻止已附加程序的任何未来执行。然后，对于需要替换 BPF 程序的情况，你可以使用替换（replace）操作。这是一个复杂的过程，因为你需要确保在替换过程中，不会丢失正在处理的事件，而且新旧程序可能在不同的 CPU 上同时运行。
+File descriptors and reference counters are used to manage BPF objects (progs, maps, and debug info). When a map is created, the kernel initializes its reference counter to 1 and returns a file descriptor to the user space process. If the process exits or crashes, the file descriptor is closed and the reference counter of the map is decremented. After the RCU grace period, the map is freed from memory.
 
-最后，除了通过文件描述符和引用计数来管理 BPF 对象的生命周期，还有一个叫做 BPFFS 的方法，也就是“BPF 文件系统”。用户空间进程可以在 BPFFS 中“固定”（pin）一个 BPF 程序或映射，这将增加对象的引用计数，使得即使 BPF 程序未附加到任何地方或 BPF 映射未被任何程序使用，该 BPF 对象也将保持活动状态。
+BPF programs that use BPF maps are loaded in two phases. The maps are created and their file descriptors are stored in the program's 'imm' field. The kernel increments the reference counters of the maps used by the program and initializes the program's reference counter to 1. Even if the user space process closes the file descriptors associated with the maps, the maps will not disappear because the program is still "using" them. When the file descriptor of the program is closed and its reference counter reaches zero, the destruction logic decrements the reference counters of all maps used by the program. This allows the same map to be used by multiple programs at once.
 
-所以，当我们谈论在后台运行 eBPF 程序时，我们需要清楚这个过程的含义。在某些情况下，即使用户空间进程已经退出，我们可能还希望 BPF 程序保持运行。这就需要我们正确地管理 BPF 对象的生命周期
+When a program is attached to a hook, its reference counter is incremented. The user space process that created the maps and program can then exit, and the maps and program will remain alive as long as their reference counters are greater than zero. This is the lifecycle of a BPF object.
 
-## 运行
+Not all attachment points are the same. XDP, tc's clsact, and cgroup-based hooks are global, meaning that programs will stay attached to them as long as the corresponding objects are alive. On the other hand, programs attached to kprobe, uprobe, tracepoint, perf_event, raw_tracepoint, socket filters, and so_reuseport hooks are local to the process. If the process crashes or closes the file descriptors associated with these hooks, the kernel will detach the BPF program and decrement its reference counter.
 
-这里还是采用了上一个的字符串替换的应用，来体现对应可能的安全风险。通过使用 `--detach` 运行程序，用户空间加载器可以退出，而不会停止 eBPF 程序。
+The file descriptor based interface provides auto-cleanup, meaning that if anything goes wrong with the user space process, the kernel will automatically clean up all BPF objects. This interface is useful for networking as well. The use of BPFFS (BPF File System) allows a process to pin a BPF program or map, which increments their reference counters and keeps them alive even if they are not attached or used by any program. This is useful when an admin wants to examine a map even when the associated program is not running.
 
-编译：
+Detach and replace are important aspects of the lifetime of a BPF program. The detach hook prevents the execution of a previously attached program from any future events, while the replace feature allows a program to be replaced in cgroup-based hooks. There is a window where the old and new programs can be executing on different CPUs, but the kernel guarantees that one of them will be processing events. Some BPF developers use a scheme where the new program is loaded with the same maps as the old program to ensure safe replacement.
+
+Overall, understanding the lifetime of BPF programs and maps is crucial for users to use BPF safely and without surprises. The use of file descriptors, reference counters, and BPFFS helps manage the lifecycle of BPF objects, ensuring their proper creation, attachment, detachment, and replacement.
+
+### eBPF in Kubernetes: Deploy eBPF Programs via Remote Procedure Call
+
+In a Kubernetes environment, deploying eBPF programs often necessitates a higher level of system privileges. Typically, these applications require at least CAP_BPF permissions, and depending on the program type, they may need even more. This requirement poses a challenge in a multi-tenant Kubernetes environment where granting extensive privileges can be a security risk.
+
+#### Using Pin to Mitigate Privilege Requirements
+
+One way to address the privilege issue is through the use of pinning eBPF maps. Pinning allows eBPF objects to persist beyond the life of the process that created them, making them accessible to other processes. This method can be particularly useful in Kubernetes, where different containers might need to interact with the same eBPF objects.
+
+For example, an eBPF map can be created and pinned by a privileged initializer container. Subsequent containers, which may run with fewer privileges, can then interact with the pinned eBPF objects. This approach limits the need for elevated privileges to the initialization phase, thereby enhancing overall security.
+
+#### The Role of bpfman in eBPF Lifecycle Management
+
+The bpfman project can play a crucial role in this context. bpfman, or BPF Daemon, is designed to manage the lifecycle of eBPF programs and maps in a more controlled and secure manner. It acts as a mediator between user space and kernel space, providing a mechanism to load and manage eBPF programs without granting extensive privileges to each individual container or application.
+
+In Kubernetes, bpfman could be deployed as a privileged service, responsible for loading and managing eBPF programs across different nodes in the cluster. It can handle the intricacies of eBPF lifecycle management, such as loading, unloading, updating eBPF programs, and managing their state. This centralized approach simplifies the deployment and management of eBPF programs in a Kubernetes cluster, while adhering to security best practices.
+
+## Use Detach to Replace by Any Program with eBPF After it Exits
+
+In libbpf, the `bpf_object__pin_maps` function can be used to pin the maps in the BPF object, the programs and links has similar API.
+
+Here we use similar programs as textreplace in the previous section to demonstrate the detach method, the pin eBPF code is like:
+
+```c
+
+int pin_program(struct bpf_program *prog, const char* path)
+{
+    int err;
+    err = bpf_program__pin(prog, path);
+        if (err) {
+            fprintf(stdout, "could not pin prog %s: %d\n", path, err);
+            return err;
+        }
+    return err;
+}
+
+int pin_map(struct bpf_map *map, const char* path)
+{
+    int err;
+    err = bpf_map__pin(map, path);
+        if (err) {
+            fprintf(stdout, "could not pin map %s: %d\n", path, err);
+            return err;
+        }
+    return err;
+}
+
+int pin_link(struct bpf_link *link, const char* path)
+{
+    int err;
+    err = bpf_link__pin(link, path);
+        if (err) {
+            fprintf(stdout, "could not pin link %s: %d\n", path, err);
+            return err;
+        }
+    return err;
+}
+```
+
+## Running
+
+Here, we still use the example of string replacement used in the previous application to demonstrate potential security risks. By using `--detach` to run the program, the user space loader can exit without stopping the eBPF program.
+
+The code of This example can be found in <https://github.com/eunomia-bpf/bpf-developer-tutorial/tree/main/src/28-detach>
+
+Compilation:
 
 ```bash
 make
 ```
 
-在运行前，请首先确保 bpf 文件系统已经被挂载：
+Before running, please make sure that the BPF file system has been mounted:
 
 ```bash
 sudo mount bpffs -t bpf /sys/fs/bpf
 mkdir /sys/fs/bpf/textreplace
 ```
 
-然后，你可以分离运行 text-replace2：
+Then, you can run text-replace2 with detach:
 
 ```bash
 ./textreplace2 -f /proc/modules -i 'joydev' -r 'cryptd' -d
 ```
 
-这将在 `/sys/fs/bpf/textreplace` 下创建一些 eBPF 链接文件。
-一旦加载器成功运行，你可以通过运行以下命令检查日志：
+This will create some eBPF link files under `/sys/fs/bpf/textreplace`. Once the loader is successfully running, you can check the log by running the following command:
 
 ```bash
 sudo cat /sys/kernel/debug/tracing/trace_pipe
-# 确认链接文件存在
+# Confirm that the link files exist
 sudo ls -l /sys/fs/bpf/textreplace
 ```
 
-然后，要停止，只需删除链接文件即可：
+Finally, to stop, simply delete the link files:
 
 ```bash
 sudo rm -r /sys/fs/bpf/textreplace
 ```
 
-## 参考资料
+## References
+
+You can visit our tutorial code repository [at https://github.com/eunomia-bpf/bpf-developer-tutorial](https://github.com/eunomia-bpf/bpf-developer-tutorial) or our website [at https://eunomia.dev/zh/tutorials/](https://eunomia.dev/zh/tutorials/) for more examples and a complete tutorial.
 
 - <https://github.com/pathtofile/bad-bpf>
 - <https://facebookmicrosites.github.io/bpf/blog/2018/08/31/object-lifetime.html>
+- <https://bpfman.io/main/blog/2023/09/07/bpfman-a-novel-way-to-manage-ebpf>
+
+> The original link of this article: <https://eunomia.dev/tutorials/28-detach>
