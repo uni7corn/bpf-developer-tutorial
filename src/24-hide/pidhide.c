@@ -13,14 +13,7 @@
 #include <fcntl.h>
 
 #include "pidhide.skel.h"
-#include "common.h"
-
-// These are used by a number of
-// different programs to sync eBPF Tail Call
-// login between user space and kernel
-#define PROG_00 0
-#define PROG_01 1
-#define PROG_02 2
+#include "pidhide.h"
 
 // Setup Argument stuff
 static struct env
@@ -44,6 +37,7 @@ static const struct argp_option opts[] = {
     {"target-ppid", 't', "TARGET-PPID", 0, "Optional Parent PID, will only affect its children."},
     {},
 };
+
 static error_t parse_arg(int key, char *arg, struct argp_state *state)
 {
     switch (key)
@@ -74,6 +68,7 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state)
     }
     return 0;
 }
+
 static const struct argp argp = {
     .options = opts,
     .parser = parse_arg,
@@ -184,6 +179,9 @@ int main(int argc, char **argv)
         fprintf(stderr, "Failed to load and verify BPF skeleton\n");
         goto cleanup;
     }
+
+	// 禁用 patch 程序的自动 attach，因为它只能通过尾调用执行
+    bpf_program__set_autoattach(skel->progs.handle_getdents_patch, false);
 
     // Setup Maps for tail calls
     int index = PROG_01;

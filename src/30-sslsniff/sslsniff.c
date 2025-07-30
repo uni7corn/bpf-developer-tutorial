@@ -8,9 +8,7 @@
 #include <bpf/libbpf.h>
 #include <ctype.h>
 #include <errno.h>
-#include <linux/types.h>
 #include <signal.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -92,8 +90,8 @@ struct env {
 	.uid = INVALID_UID,
 	.pid = INVALID_PID,
 	.openssl = true,
-	.gnutls = true,
-	.nss = true,
+	.gnutls = false,
+	.nss = false,
 	.comm = NULL,
 };
 
@@ -196,6 +194,11 @@ int attach_openssl(struct sslsniff_bpf *skel, const char *lib) {
 	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_write, probe_SSL_write_exit);
 	ATTACH_UPROBE_CHECKED(skel, lib, SSL_read, probe_SSL_rw_enter);
 	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_read, probe_SSL_read_exit);
+
+	ATTACH_UPROBE_CHECKED(skel, lib, SSL_write_ex, probe_SSL_write_ex_enter);
+	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_write_ex, probe_SSL_write_ex_exit);
+	ATTACH_UPROBE_CHECKED(skel, lib, SSL_read_ex, probe_SSL_read_ex_enter);
+	ATTACH_URETPROBE_CHECKED(skel, lib, SSL_read_ex, probe_SSL_read_ex_exit);
 
 	if (env.latency && env.handshake) {
 		ATTACH_UPROBE_CHECKED(skel, lib, SSL_do_handshake,
@@ -397,7 +400,7 @@ int main(int argc, char **argv) {
 	if (env.openssl) {
 		char *openssl_path = find_library_path("libssl.so");
 		printf("OpenSSL path: %s\n", openssl_path);
-		attach_openssl(obj, "/lib/x86_64-linux-gnu/libssl.so.3");
+		attach_openssl(obj, openssl_path);
 	}
 	if (env.gnutls) {
 		char *gnutls_path = find_library_path("libgnutls.so");

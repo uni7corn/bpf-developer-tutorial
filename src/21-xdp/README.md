@@ -1,23 +1,80 @@
-# eBPF 入门实践教程二十一：使用 xdp 实现可编程包处理
+# eBPF Tutorial by Example 21: Programmable Packet Processing with XDP
 
-## 背景
+In this tutorial, we will introduce XDP (eXpress Data Path) and walk through a small example to help you get started. Later on, we will explore more advanced XDP applications, such as load balancers, firewalls, and other real-world use cases. Please give us a start on [Github](https://github.com/eunomia-bpf/bpf-developer-tutorial) if you are interested in eBPF or XDP!
 
-xdp（eXpress Data Path）是 Linux 内核中新兴的一种绕过内核的、可编程的包处理方案。相较于 cBPF，xdp 的挂载点非常底层，位于网络设备驱动的软中断处理过程，甚至早于 skb_buff 结构的分配。因此，在 xdp 上挂载 eBPF 程序适用于很多简单但次数极多的包处理操作（如防御 Dos 攻击），可以达到很高的性能（24Mpps/core）。
+## What is XDP?
 
-## XDP 概述
+XDP is a high-performance, programmable data path in the Linux kernel, designed for packet processing at the network interface level. By attaching eBPF programs directly to network device drivers, XDP can intercept and handle packets before they reach the kernel’s networking stack. This allows for extremely low-latency and efficient packet processing, making it ideal for tasks like DDoS defense, load balancing, and traffic filtering. In fact, XDP can achieve throughput as high as **24 million packets per second (Mpps) per core**.
 
-xdp 不是第一个支持可编程包处理的系统，在此之前，以 DPDK（Data Plane Development Kit）为代表的内核旁路方案甚至能够取得更高的性能，其思路为完全绕过内核，由用户态的网络应用接管网络设备，从而避免了用户态和内核态的切换开销。然而，这样的方式具有很多天然的缺陷：
+### Why XDP?
 
-+ 无法与内核中成熟的网络模块集成，而不得不在用户态将其重新实现；
-+ 破坏了内核的安全边界，使得内核提供的很多网络工具变得不可用；
-+ 在与常规的 socket 交互时，需要从用户态重新将包注入到内核；
-+ 需要占用一个或多个单独的 CPU 来进行包处理；
+XDP operates at a lower level than traditional Linux networking components, like cBPF (Classic BPF), by running inside the soft interrupt context of the network device driver. It can handle packets before they are even processed by the kernel's standard networking stack, bypassing the creation of the `skb_buff` structure, which represents network packets in Linux. This early-stage processing provides significant performance gains for simple but frequent operations like dropping malicious packets or load balancing across servers.
 
-除此之外，利用内核模块和内核网络协议栈中的 hook 点也是一种思路，然而前者对内核的改动大，出错的代价高昂；后者在整套包处理流程中位置偏后，其效率不够理想。
+Compared to other packet processing mechanisms, XDP strikes a balance between performance and usability, leveraging the security and reliability of the Linux kernel while providing flexibility through programmable eBPF.
 
-总而言之，xdp + eBPF 为可编程包处理系统提出了一种更为稳健的思路，在某种程度上权衡了上述方案的种种优点和不足，获取较高性能的同时又不会对内核的包处理流程进行过多的改变，同时借助 eBPF 虚拟机的优势将用户定义的包处理过程进行隔离和限制，提高了安全性。
+## Overview of XDP vs. Other Approaches
 
-## 编写 eBPF 程序
+Before XDP, several other solutions aimed to accelerate packet processing by bypassing the kernel entirely. One prominent example is **DPDK** (Data Plane Development Kit). DPDK allows user-space applications to take direct control of network devices, achieving very high performance. However, this approach comes with trade-offs:
+
+1. **Lack of Kernel Integration**: DPDK and other kernel-bypass solutions cannot utilize existing kernel networking features, requiring developers to reimplement many protocols and functions in user space.
+
+2. **Security Boundaries**: These bypass techniques break the kernel’s security model, making it harder to leverage security tools provided by the kernel.
+
+3. **User-Kernel Transition Costs**: When user-space packet processing needs to interact with traditional kernel networking (like socket-based applications), packets must be reinjected into the kernel, adding overhead and complexity.
+
+4. **Dedicated CPU Usage**: To handle high traffic, DPDK and similar solutions often require dedicating one or more CPU cores solely for packet processing, which limits the scalability and efficiency of general-purpose systems.
+
+Another alternative to XDP is using **kernel modules** or **hooks** in the Linux networking stack. While this method integrates well with existing kernel features, it requires extensive kernel modifications and does not provide the same performance benefits, as it operates later in the packet processing pipeline.
+
+### The XDP + eBPF Advantage
+
+XDP combined with eBPF offers a middle ground between kernel-bypass solutions like DPDK and kernel-integrated solutions. Here’s why XDP + eBPF stands out:
+
+- **High Performance**: By intercepting packets early at the NIC driver level, XDP achieves near-line rate performance for tasks like dropping, redirecting, or load balancing packets, all while keeping resource usage low.
+  
+- **Kernel Integration**: Unlike DPDK, XDP works within the Linux kernel, allowing seamless interaction with the existing kernel network stack and tools (such as `iptables`, `nftables`, or sockets). There’s no need to reimplement networking protocols in user space.
+
+- **Security**: The eBPF virtual machine (VM) ensures that user-defined XDP programs are sandboxed and constrained, which means they cannot destabilize the kernel. The security model of eBPF prevents malicious or buggy code from harming the system, providing a safe environment for programmable packet processing.
+
+- **No Dedicated CPUs Required**: XDP allows packet processing without dedicating entire CPU cores solely to network tasks. This improves the overall efficiency of the system, allowing for more flexible resource allocation.
+
+In summary, XDP + eBPF delivers a robust solution for programmable packet processing that combines high performance with the flexibility and safety of kernel integration. It eliminates the drawbacks of full kernel-bypass solutions while retaining the benefits of kernel security and functionality.
+
+## Projects and Use Cases with XDP
+
+XDP is already being used in a number of high-profile projects that highlight its power and flexibility in real-world networking scenarios:
+
+### 1. **Cilium**
+
+- **Description**: Cilium is an open-source networking, security, and observability tool designed for cloud-native environments, especially Kubernetes. It leverages XDP to implement high-performance packet filtering and load balancing.
+- **Use Case**: Cilium offloads packet filtering and security policies to XDP, enabling high-throughput and low-latency traffic management in containerized environments without sacrificing scalability.
+- **Link**: [Cilium](https://cilium.io/)
+
+### 2. **Katran**
+
+- **Description**: Katran is a layer 4 load balancer developed by Facebook, optimized for high scalability and performance. It uses XDP to handle packet forwarding with minimal overhead.
+- **Use Case**: Katran processes millions of packets per second to distribute traffic across backend servers efficiently, using XDP to achieve low-latency and high-performance load balancing in large-scale data centers.
+- **Link**: [Katran GitHub](https://github.com/facebookincubator/katran)
+
+### 3. **XDP DDoS Protection at Cloudflare**
+
+- **Description**: Cloudflare has implemented XDP for real-time DDoS mitigation. By processing packets at the NIC level, Cloudflare can filter out attack traffic before it reaches the networking stack, minimizing the impact of DDoS attacks on their systems.
+- **Use Case**: Cloudflare leverages XDP to drop malicious packets early in the pipeline, protecting their infrastructure from large-scale DDoS attacks while maintaining high availability for legitimate traffic.
+- **Link**: [Cloudflare Blog on XDP](https://blog.cloudflare.com/l4drop-xdp-ebpf-based-ddos-mitigations/)
+
+These projects demonstrate the real-world capabilities of XDP for scalable and efficient packet processing across different domains, from security and load balancing to cloud-native networking.
+
+### Why Use XDP Over Other Methods?
+
+Compared to traditional methods like `iptables`, `nftables`, or `tc`, XDP offers several clear advantages:
+
+- **Speed and Low Overhead**: Operating directly in the NIC driver, XDP bypasses much of the kernel’s overhead, enabling faster packet processing.
+  
+- **Customizability**: XDP allows developers to create custom packet-processing programs with eBPF, providing more flexibility and granularity than legacy tools like `iptables`.
+
+- **Resource Efficiency**: XDP does not require dedicating entire CPU cores to packet processing, unlike user-space solutions like DPDK, making it a more efficient choice for high-performance networking.
+
+## Writing your first XDP Program
 
 ```C
 #include "vmlinux.h"
@@ -39,9 +96,9 @@ int xdp_pass(struct xdp_md* ctx) {
 char __license[] SEC("license") = "GPL";
 ```
 
-这是一段 C 语言实现的 eBPF 内核侧代码，它能够通过 xdp 捕获所有经过目标网络设备的数据包，计算其大小并输出到 `trace_pipe` 中。
+This is a kernel-side eBPF code written in C. It captures all packets passing through the target network device using XDP, calculates their size, and outputs it to `trace_pipe`.
 
-值得注意的是，在代码中我们使用了以下注释：
+It's worth noting the following annotations in the code:
 
 ```C
 /// @ifindex 1
@@ -49,23 +106,23 @@ char __license[] SEC("license") = "GPL";
 /// @xdpopts {"old_prog_fd":0}
 ```
 
-这是由 eunomia-bpf 提供的功能，我们可以通过这样的注释告知 eunomia-bpf 加载器此 xdp 程序想要挂载的目标网络设备编号，挂载的标志和选项。
+This functionality is provided by eunomia-bpf, which allows these annotations to inform the eunomia-bpf loader about the desired target network device number, mounting flags, and options for this XDP program.
 
-这些变量的设计基于 libbpf 提供的 API，可以通过 [patchwork](https://patchwork.kernel.org/project/netdevbpf/patch/20220120061422.2710637-2-andrii@kernel.org/#24705508) 查看接口的详细介绍。
+These variables are based on the API provided by libbpf. Detailed information about the interface can be viewed [here](https://patchwork.kernel.org/project/netdevbpf/patch/20220120061422.2710637-2-andrii@kernel.org/#24705508).
 
-`SEC("xdp")` 宏指出 BPF 程序的类型，`ctx` 是此 BPF 程序执行的上下文，用于包处理流程。
+The `SEC("xdp")` macro indicates the type of the BPF program, while `ctx` is the execution context of this BPF program for packet processing.
 
-在程序的最后，我们返回了 `XDP_PASS`，这表示我们的 xdp 程序会将经过目标网络设备的包正常交付给内核的网络协议栈。可以通过 [XDP actions](https://prototype-kernel.readthedocs.io/en/latest/networking/XDP/implementation/xdp_actions.html) 了解更多 xdp 的处理动作。
+At the end of the program, we return `XDP_PASS`, signaling that our XDP program will deliver packets passing through the target network device to the kernel's network protocol stack as usual. For more on XDP actions, see [XDP actions](https://prototype-kernel.readthedocs.io/en/latest/networking/XDP/implementation/xdp_actions.html).
 
-## 编译运行
+## Compilation and Execution
 
-通过容器编译：
+To compile using a container:
 
 ```console
 docker run -it -v `pwd`/:/src/ ghcr.io/eunomia-bpf/ecc-`uname -m`:latest
 ```
 
-或是通过 `ecc` 编译：
+Or compile with `ecc`:
 
 ```console
 $ ecc xdp.bpf.c
@@ -73,13 +130,13 @@ Compiling bpf object...
 Packing ebpf object and config into package.json...
 ```
 
-并通过 `ecli` 运行：
+Then, run with `ecli`:
 
 ```console
 sudo ecli run package.json
 ```
 
-可以通过如下方式查看程序的输出：
+To view the program's output:
 
 ```console
 $ sudo cat /sys/kernel/tracing/trace_pipe
@@ -89,14 +146,18 @@ $ sudo cat /sys/kernel/tracing/trace_pipe
             node-1939    [000] d.s11  1601.275860: bpf_trace_printk: packet size is 344
 ```
 
-## 总结
+## Conclusion
 
-本文介绍了如何使用 xdp 来处理经过特定网络设备的包，基于 eunomia-bpf 提供的通过注释向 libbpf 传递参数的方案，我们可以将自己编写的 xdp BPF 程序以指定选项挂载到目标设备，并在网络包进入内核网络协议栈之前就对其进行处理，从而获取高性能的可编程包处理能力。
+This article introduces how to use XDP to process packets passing through a specific network device. With eunomia-bpf's annotation-based approach for passing parameters to libbpf, we can mount our custom XDP BPF program onto the target device with specified options. This allows packet processing even before they enter the kernel's network protocol stack, achieving high-performance programmable packet processing.
 
-如果您希望学习更多关于 eBPF 的知识和实践，可以访问我们的教程代码仓库 <https://github.com/eunomia-bpf/bpf-developer-tutorial> 或网站 <https://eunomia.dev/zh/tutorials/> 以获取更多示例和完整的教程。
+For those interested in further exploring eBPF, visit our tutorial code repository at <https://github.com/eunomia-bpf/bpf-developer-tutorial> or website <https://eunomia.dev/tutorials/> for more examples and a comprehensive guide.
 
-## 参考资料
+## References
 
-+ <http://arthurchiao.art/blog/xdp-paper-acm-2018-zh/>
-+ <http://arthurchiao.art/blog/linux-net-stack-implementation-rx-zh/>
-+ <https://github.com/xdp-project/xdp-tutorial/tree/master/basic01-xdp-pass>
+For more information, you can refer to:
+
+- <http://arthurchiao.art/blog/xdp-paper-acm-2018-zh/>
+- <http://arthurchiao.art/blog/linux-net-stack-implementation-rx-zh/>
+- <https://github.com/xdp-project/xdp-tutorial/tree/master/basic01-xdp-pass>
+
+> The original link of this article: <https://eunomia.dev/tutorials/21-xdp>
