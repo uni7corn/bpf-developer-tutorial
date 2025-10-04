@@ -16,7 +16,9 @@ Uprobe 在内核态 eBPF 运行时，也可能产生比较大的性能开销，�
 
 ## 使用 uprobe 捕获 bash 的 readline 函数调用
 
-uprobe 是一种用于捕获用户空间函数调用的 eBPF 的探针，我们可以通过它来捕获用户空间程序调用的系统函数。
+uprobe 特别适合在以下场景使用：你需要跟踪特定应用程序的行为，但无法修改源代码或重新编译程序；你想要调试复杂的用户空间问题，比如追踪库函数调用；或者你需要进行安全审计，监控敏感函数的调用。
+
+为什么不能直接使用 kprobe？因为像 readline 这样的函数是在用户空间库中实现的，不是内核函数。uprobe 让我们能够在不修改程序的情况下，动态地插入探测点到任何用户空间二进制文件中。
 
 例如，我们可以使用 uprobe 来捕获 bash 的 readline 函数调用，从而获取用户在 bash 中输入的命令行。示例代码如下：
 
@@ -107,7 +109,10 @@ BPF_KRETPROBE(printret, const void *ret)
  bpf_printk("PID %d (%s) read: %s ", pid, comm, str);
 ```
 
-eunomia-bpf 是一个结合 Wasm 的开源 eBPF 动态加载运行时和开发工具链，它的目的是简化 eBPF 程序的开发、构建、分发、运行。可以参考 <https://github.com/eunomia-bpf/eunomia-bpf> 下载和安装 ecc 编译工具链和 ecli 运行时。我们使用 eunomia-bpf 编译运行这个例子。
+
+关键的部分是 `bpf_probe_read_user_str` 我们需要使用这个特殊的辅助函数来安全地从用户空间内存读取字符串，不能直接解引用 `ret` 指针，因为 eBPF 程序运行在内核空间，直接访问用户空间内存会导致错误。这个函数确保了安全的跨空间内存访问。
+
+我们使用 eunomia-bpf 来编译和运行这个示例。你可以从 <https://github.com/eunomia-bpf/eunomia-bpf> 安装它。
 
 编译运行上述代码：
 
@@ -132,7 +137,5 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe
 ## 总结
 
 在上述代码中，我们使用了 SEC 宏来定义了一个 uprobe 探针，它指定了要捕获的用户空间程序 (bin/bash) 和要捕获的函数 (readline)。此外，我们还使用了 BPF_KRETPROBE 宏来定义了一个用于处理 readline 函数返回值的回调函数 (printret)。该函数可以获取到 readline 函数的返回值，并将其打印到内核日志中。通过这样的方式，我们就可以使用 eBPF 来捕获 bash 的 readline 函数调用，并获取用户在 bash 中输入的命令行。
-
-更多的例子和详细的开发指南，请参考 eunomia-bpf 的官方文档：<https://github.com/eunomia-bpf/eunomia-bpf>
 
 如果您希望学习更多关于 eBPF 的知识和实践，可以访问我们的教程代码仓库 <https://github.com/eunomia-bpf/bpf-developer-tutorial> 或网站 <https://eunomia.dev/zh/tutorials/> 以获取更多示例和完整的教程。

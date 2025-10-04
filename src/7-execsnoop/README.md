@@ -6,7 +6,9 @@ This article is the seventh part of the eBPF Tutorial by Example and mainly intr
 
 ## perf buffer
 
-eBPF provides two circular buffers for transferring information from eBPF programs to user space controllers. The first one is the perf circular buffer, which has existed since at least kernel v4.15. The second one is the BPF circular buffer introduced later. This article only considers the perf circular buffer.
+When you need to send structured data from your eBPF program to user-space, `bpf_printk` isn't enough. That's where perf event arrays come in. They let you send custom data structures efficiently from kernel to user-space.
+
+eBPF offers two types of ring buffers for this: the perf event array (available since kernel 4.15+) and the newer BPF ring buffer (kernel 5.8+). This tutorial uses the perf event array since it's more widely supported. The newer ring buffer is more efficient and easier to use, which we'll cover in the next tutorial.
 
 ## execsnoop
 
@@ -76,7 +78,7 @@ This code defines an eBPF program for capturing the entry of the `execve` system
 
 In the entry program, we first obtain the process ID and user ID of the current process, then use the `bpf_get_current_task` function to obtain the `task_struct` structure of the current process, and use the `bpf_probe_read_str` function to read the process name. Finally, we use the `bpf_perf_event_output` function to output the process execution event to the perf buffer.
 
-With this code, we can capture process execution events in the Linux kernel and analyze the process execution conditions.Instructions: Translate the following Chinese text to English while maintaining the original formatting:
+With this code, we can capture process execution events in the Linux kernel and analyze the process execution conditions.
 
 We use eunomia-bpf to compile and execute this example. You can refer to the following link to download and install the ecc compilation toolchain and ecli runtime: [https://github.com/eunomia-bpf/eunomia-bpf](https://github.com/eunomia-bpf/eunomia-bpf).
 
@@ -119,7 +121,5 @@ struct {
 ```
 
 This allows sending information directly to the user space.
-
-For more examples and detailed development guide, please refer to the official documentation of eunomia-bpf: [https://github.com/eunomia-bpf/eunomia-bpf](https://github.com/eunomia-bpf/eunomia-bpf).
 
 If you want to learn more about eBPF knowledge and practice, you can visit our tutorial code repository [https://github.com/eunomia-bpf/bpf-developer-tutorial](https://github.com/eunomia-bpf/bpf-developer-tutorial) to get more examples and complete tutorials."
