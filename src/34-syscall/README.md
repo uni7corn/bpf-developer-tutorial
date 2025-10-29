@@ -4,7 +4,8 @@ eBPF (Extended Berkeley Packet Filter) is a powerful feature in the Linux kernel
 
 In this tutorial, we will explore how to use eBPF to modify the arguments of a running system call. This technique can be used for security auditing, system monitoring, or even malicious behavior. However, it is important to note that modifying system call arguments can have negative implications for system stability and security, so caution must be exercised. To implement this functionality, we will use the `bpf_probe_write_user` feature of eBPF, which allows us to modify memory in the user space and therefore modify system call arguments before the kernel reads them from user space.
 
-The complete code for this tutorial can be found in the <https://github.com/eunomia-bpf/bpf-developer-tutorial/tree/main/src/34-syscall/> repository on GitHub.
+
+> The complete source code: <https://github.com/eunomia-bpf/bpf-developer-tutorial/tree/main/src/34-syscall>
 
 ## Modifying the File Name of the `open` System Call
 
@@ -49,7 +50,7 @@ Analysis of the kernel code:
 - We create an `args_t` structure to store the file name and flags.
 - We use `bpf_probe_write_user` to modify the file name in the user space memory to "hijacked".
 
-The `eunomia-bpf` is an open-source eBPF dynamic loading runtime and development toolchain aimed at making eBPF program development, building, distribution, and execution easier. You can refer to <https://github.com/eunomia-bpf/eunomia-bpf> or <https://eunomia.dev/tutorials/1-helloworld/> for installing ecc compiler toolchain and ecli runtime. We will use `eunomia-bpf` to compile and run this example.
+We use eunomia-bpf to compile and run this example. You can install it from <https://github.com/eunomia-bpf/eunomia-bpf>.
 
 Compile the code:
 
