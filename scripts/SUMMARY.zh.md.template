@@ -1,0 +1,23 @@
+# eBPF 开发实践教程：基于 CO-RE，通过小工具快速上手 eBPF 开发
+
+这是一个基于 `CO-RE`（一次编译，到处运行）的 eBPF 的开发教程，提供了从入门到进阶的 eBPF 开发实践，包括基本概念、代码实例、实际应用等内容。和 BCC 不同的是,我们使用 libbpf、Cilium、libbpf-rs、eunomia-bpf 等框架进行开发，包含 C、Go、Rust 等语言的示例。
+
+本教程不会进行复杂的概念讲解和场景介绍，主要希望提供一些 eBPF 小工具的案例（**非常短小，从二十行代码开始入门！**），来帮助 eBPF 应用的开发者快速上手 eBPF 的开发方法和技巧。教程内容可以在目录中找到，每个目录都是一个独立的 eBPF 工具案例。
+
+教程关注于可观测性、网络、安全等等方面的 eBPF 示例。完整的代码和教程可以在 [https://github.com/eunomia-bpf/bpf-developer-tutorial](https://github.com/eunomia-bpf/bpf-developer-tutorial) GitHub 开源仓库中找到。**如果您认为本教程对您有所帮助，也请给我们一个 star 鼓励一下！**
+
+{{TOC_CONTENT}}
+
+## 推荐书籍：《深入理解 eBPF 与可观测性》
+
+在当今云原生、人工智能和大模型迅猛发展的时代，理解和优化操作系统性能变得尤为重要。龙蜥社区多位资深专家历时两年，联袂打造业内首本系统性穿透 Linux 内核观测技术指南——《深入理解 eBPF 与可观测性》。
+
+本书不仅深入剖析了 eBPF 的底层原理和开发框架，结合了网络、内存、I/O、调度等六大领域，提供了原理和代码级的深度解析，包含了丰富的生产级实践代码，助力读者快速掌握 eBPF 技术，应用于网络流量分析、故障排查、性能调优等实际场景。
+
+无论是内核开发者、运维工程师、eBPF 技术爱好者，还是可观测领域、操作系统领域专家，这本书都将成为您洞悉 Linux 系统的必备武器。
+
+![书籍推荐](https://github.com/eunomia-bpf/bpf-developer-tutorial/raw/main/src/third_party/book-picture.png)
+
+欢迎关注我们的微信公众号，获取更多 eBPF 相关的技术文章、教程更新和社区动态！
+
+![微信公众号](https://github.com/eunomia-bpf/bpf-developer-tutorial/raw/main/src/third_party/wechat-qrcode.png)

@@ -32,7 +32,6 @@ This section contains simple eBPF program examples and introductions. It primari
 - [lesson 8-exitsnoop](src/8-exitsnoop/README.md) Monitoring Process Exit Events, Output with Ring Buffer
 - [lesson 9-runqlat](src/9-runqlat/README.md) Capturing Scheduling Latency and Recording as Histogram
 - [lesson 10-hardirqs](src/10-hardirqs/README.md) Capturing Interrupts with hardirqs or softirqs
-
 ### Advanced Documents and Examples
 
 We start to build complete eBPF projects mainly based on `libbpf` and combine them with various application scenarios for practical use.
@@ -48,14 +47,25 @@ We start to build complete eBPF projects mainly based on `libbpf` and combine th
 - [lesson 19-lsm-connect](src/19-lsm-connect/README.md) Security Detection and Defense using LSM
 - [lesson 20-tc](src/20-tc/README.md) tc Traffic Control
 - [lesson 21-xdp](src/21-xdp/README.md) Programmable Packet Processing with XDP
-
 ### In-Depth Topics
 
 This section covers advanced topics related to eBPF, including using eBPF programs on Android, possible attacks and defenses using eBPF programs, and complex tracing. Combining the user-mode and kernel-mode aspects of eBPF can bring great power (as well as security risks).
 
-Android:
 
-- [lesson 22-android](src/22-android/README.md) Using eBPF Programs on Android
+
+GPU:
+
+- [lesson 47-cuda-events](src/47-cuda-events/README.md) Tracing CUDA GPU Operations
+- [lesson xpu/npu-kernel-driver](src/xpu/npu-kernel-driver/README.md) Tracing Intel NPU Kernel Driver Operations
+- [xpu flamegraph](src/xpu/flamegraph/README.md) Building a GPU Flamegraph Profiler with CUPTI
+- [lesson xpu/gpu-kernel-driver](src/xpu/gpu-kernel-driver/README.md) Monitoring GPU Driver Activity with Kernel Tracepoints
+
+
+Scheduler:
+
+- [lesson 44-scx-simple](src/44-scx-simple/README.md) Introduction to the BPF Scheduler
+- [lesson 45-scx-nest](src/45-scx-nest/README.md) Implementing the `scx_nest` Scheduler
+
 
 Networking:
 
@@ -63,32 +73,49 @@ Networking:
 - [lesson 29-sockops](src/29-sockops/README.md) Accelerating Network Request Forwarding with Sockops
 - [lesson 41-xdp-tcpdump](src/41-xdp-tcpdump/README.md) Capturing TCP Information with XDP
 - [lesson 42-xdp-loadbalancer](src/42-xdp-loadbalancer/README.md) XDP Load Balancer
+- [lesson 46-xdp-test](src/46-xdp-test/README.md) Building a High-Performance XDP Packet Generator
+
+
+Tracing:
+
+- [lesson 30-sslsniff](src/30-sslsniff/README.md) Capturing SSL/TLS Plain Text Data Using uprobe
+- [lesson 31-goroutine](src/31-goroutine/README.md) Using eBPF to Trace Go Routine States
+- [lesson 33-funclatency](src/33-funclatency/README.md) Measuring Function Latency with eBPF
+- [lesson 37-uprobe-rust](src/37-uprobe-rust/README.md) Tracing User Space Rust Applications with Uprobe
+- [lesson 39-nginx](src/39-nginx/README.md) Using eBPF to Trace Nginx Requests
+- [lesson 40-mysql](src/40-mysql/README.md) Using eBPF to Trace MySQL Queries
+- [lesson 48-energy](src/48-energy/README.md) Energy Monitoring for Process-Level Power Analysis
+
 
 Security:
 
 - [lesson 24-hide](src/24-hide/README.md) Hiding Process or File Information
 - [lesson 25-signal](src/25-signal/README.md) Using bpf_send_signal to Terminate Malicious Processes in eBPF
-- [lesson 26-sudo](src/26-sudo/README.md) Using eBPF to add sudo user
-- [lesson 27-replace](src/27-replace/README.md) Replace Text Read or Written by Any Program with eBPF
+- [lesson 26-sudo](src/26-sudo/README.md) Privilege Escalation via File Content Manipulation
+- [lesson 27-replace](src/27-replace/README.md) Transparent Text Replacement in File Reads
 - [lesson 28-detach](src/28-detach/README.md) Running eBPF After Application Exits: The Lifecycle of eBPF Programs
 - [lesson 34-syscall](src/34-syscall/README.md) Modifying System Call Arguments with eBPF
 
-Scheduler:
 
-- [lesson 44-scx-simple](src/44-scx-simple/README.md) Introduction to the BPF Scheduler
-- [lesson 45-scx-nest](src/45-scx-nest/README.md) Implementing the `scx_nest` Scheduler
-
-GPU:
-
-- [lesson 47](src/47-cuda-events/README.md) Using eBPF to trace CUDA operations for GPU
-
-
-Other:
+Features:
 
 - [lesson 35-user-ringbuf](src/35-user-ringbuf/README.md) Asynchronously Send to Kernel with User Ring Buffer
 - [lesson 36-userspace-ebpf](src/36-userspace-ebpf/README.md) Userspace eBPF Runtimes: Overview and Applications
 - [lesson 38-btf-uprobe](src/38-btf-uprobe/README.md) Expanding eBPF Compile Once, Run Everywhere(CO-RE) to Userspace Compatibility
 - [lesson 43-kfuncs](src/43-kfuncs/README.md) Extending eBPF Beyond Its Limits: Custom kfuncs in Kernel Modules
+- [features bpf_wq](src/features/bpf_wq/README.md) BPF Workqueues for Asynchronous Sleepable Tasks
+- [features bpf_iters](src/features/bpf_iters/README.md) BPF Iterators for Kernel Data Export
+- [features struct_ops](src/features/struct_ops/README.md) BPF struct_ops Example with Custom Kernel Module
+- [features bpf_arena](src/features/bpf_arena/README.md) BPF Arena for Zero-Copy Shared Memory
+
+Other:
+
+- [lesson 49-hid](src/49-hid/README.md) Fixing Broken HID Devices Without Kernel Patches
+
+
+Android:
+
+- [lesson 22-android](src/22-android/README.md) Using eBPF Programs on Android
 
 Continuously updating...
 
@@ -142,15 +169,15 @@ After writing code in a codespace and making a commit, GitHub Actions will compi
 
 ```console
 $ sudo docker run --rm -it --privileged ghcr.io/eunomia-bpf/libbpf-rs-template:latest
-[sudo] password for xxx: 
+[sudo] password for xxx:
 Tracing run queue latency higher than 10000 us
-TIME     COMM             TID     LAT(us)       
-12:09:19 systemd-udevd    30786   18300         
-12:09:19 systemd-udevd    30796   21941         
-12:09:19 systemd-udevd    30793   10323         
-12:09:19 systemd-udevd    30795   14827         
-12:09:19 systemd-udevd    30790   17973         
-12:09:19 systemd-udevd    30793   12328         
+TIME     COMM             TID     LAT(us)
+12:09:19 systemd-udevd    30786   18300
+12:09:19 systemd-udevd    30796   21941
+12:09:19 systemd-udevd    30793   10323
+12:09:19 systemd-udevd    30795   14827
+12:09:19 systemd-udevd    30790   17973
+12:09:19 systemd-udevd    30793   12328
 12:09:19 systemd-udevd    30796   28721
 ```
 

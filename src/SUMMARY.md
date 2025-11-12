@@ -6,7 +6,9 @@ This tutorial does not cover complex concepts and scenario introductions. Its ma
 
 For the complete source code of the tutorial, please refer to the repo [https://github.com/eunomia-bpf/bpf-developer-tutorial](https://github.com/eunomia-bpf/bpf-developer-tutorial) on GitHub. **If you find this tutorial helpful, please give us a star!**
 
-# Getting Started Examples
+## Table of Contents
+
+### Getting Started Examples
 
 This section contains simple eBPF program examples and introductions. It primarily utilizes the `eunomia-bpf` framework to simplify development and introduces the basic usage and development process of eBPF.
 
@@ -21,8 +23,7 @@ This section contains simple eBPF program examples and introductions. It primari
 - [lesson 8-exitsnoop](8-exitsnoop/README.md) Monitoring Process Exit Events, Output with Ring Buffer
 - [lesson 9-runqlat](9-runqlat/README.md) Capturing Scheduling Latency and Recording as Histogram
 - [lesson 10-hardirqs](10-hardirqs/README.md) Capturing Interrupts with hardirqs or softirqs
-
-# Advanced Documents and Examples
+### Advanced Documents and Examples
 
 We start to build complete eBPF projects mainly based on `libbpf` and combine them with various application scenarios for practical use.
 
@@ -37,14 +38,25 @@ We start to build complete eBPF projects mainly based on `libbpf` and combine th
 - [lesson 19-lsm-connect](19-lsm-connect/README.md) Security Detection and Defense using LSM
 - [lesson 20-tc](20-tc/README.md) tc Traffic Control
 - [lesson 21-xdp](21-xdp/README.md) Programmable Packet Processing with XDP
-
-# In-Depth Topics
+### In-Depth Topics
 
 This section covers advanced topics related to eBPF, including using eBPF programs on Android, possible attacks and defenses using eBPF programs, and complex tracing. Combining the user-mode and kernel-mode aspects of eBPF can bring great power (as well as security risks).
 
-Android:
 
-- [lesson 22-android](22-android/README.md) Using eBPF Programs on Android
+
+GPU:
+
+- [lesson 47-cuda-events](47-cuda-events/README.md) Tracing CUDA GPU Operations
+- [lesson xpu/npu-kernel-driver](xpu/npu-kernel-driver/README.md) Tracing Intel NPU Kernel Driver Operations
+- [xpu flamegraph](xpu/flamegraph/README.md) Building a GPU Flamegraph Profiler with CUPTI
+- [lesson xpu/gpu-kernel-driver](xpu/gpu-kernel-driver/README.md) Monitoring GPU Driver Activity with Kernel Tracepoints
+
+
+Scheduler:
+
+- [lesson 44-scx-simple](44-scx-simple/README.md) Introduction to the BPF Scheduler
+- [lesson 45-scx-nest](45-scx-nest/README.md) Implementing the `scx_nest` Scheduler
+
 
 Networking:
 
@@ -52,41 +64,48 @@ Networking:
 - [lesson 29-sockops](29-sockops/README.md) Accelerating Network Request Forwarding with Sockops
 - [lesson 41-xdp-tcpdump](41-xdp-tcpdump/README.md) Capturing TCP Information with XDP
 - [lesson 42-xdp-loadbalancer](42-xdp-loadbalancer/README.md) XDP Load Balancer
+- [lesson 46-xdp-test](46-xdp-test/README.md) Building a High-Performance XDP Packet Generator
+
+
+Tracing:
+
+- [lesson 30-sslsniff](30-sslsniff/README.md) Capturing SSL/TLS Plain Text Data Using uprobe
+- [lesson 31-goroutine](31-goroutine/README.md) Using eBPF to Trace Go Routine States
+- [lesson 33-funclatency](33-funclatency/README.md) Measuring Function Latency with eBPF
+- [lesson 37-uprobe-rust](37-uprobe-rust/README.md) Tracing User Space Rust Applications with Uprobe
+- [lesson 39-nginx](39-nginx/README.md) Using eBPF to Trace Nginx Requests
+- [lesson 40-mysql](40-mysql/README.md) Using eBPF to Trace MySQL Queries
+- [lesson 48-energy](48-energy/README.md) Energy Monitoring for Process-Level Power Analysis
+
 
 Security:
 
 - [lesson 24-hide](24-hide/README.md) Hiding Process or File Information
 - [lesson 25-signal](25-signal/README.md) Using bpf_send_signal to Terminate Malicious Processes in eBPF
-- [lesson 26-sudo](26-sudo/README.md) Using eBPF to add sudo user
-- [lesson 27-replace](27-replace/README.md) Replace Text Read or Written by Any Program with eBPF
+- [lesson 26-sudo](26-sudo/README.md) Privilege Escalation via File Content Manipulation
+- [lesson 27-replace](27-replace/README.md) Transparent Text Replacement in File Reads
 - [lesson 28-detach](28-detach/README.md) Running eBPF After Application Exits: The Lifecycle of eBPF Programs
 - [lesson 34-syscall](34-syscall/README.md) Modifying System Call Arguments with eBPF
 
-Scheduler:
 
-- [lesson 44-scx-simple](44-scx-simple/README.md) Introduction to the BPF Scheduler
-- [lesson 45-scx-nest](45-scx-nest/README.md) Implementing the `scx_nest` Scheduler
-
-GPU:
-
-- [lesson 47-cuda-events](47-cuda-events/README.md) Using eBPF to trace CUDA operations for GPU
-
-Other:
+Features:
 
 - [lesson 35-user-ringbuf](35-user-ringbuf/README.md) Asynchronously Send to Kernel with User Ring Buffer
 - [lesson 36-userspace-ebpf](36-userspace-ebpf/README.md) Userspace eBPF Runtimes: Overview and Applications
 - [lesson 38-btf-uprobe](38-btf-uprobe/README.md) Expanding eBPF Compile Once, Run Everywhere(CO-RE) to Userspace Compatibility
 - [lesson 43-kfuncs](43-kfuncs/README.md) Extending eBPF Beyond Its Limits: Custom kfuncs in Kernel Modules
+- [features bpf_wq](features/bpf_wq/README.md) BPF Workqueues for Asynchronous Sleepable Tasks
+- [features bpf_iters](features/bpf_iters/README.md) BPF Iterators for Kernel Data Export
+- [features struct_ops](features/struct_ops/README.md) BPF struct_ops Example with Custom Kernel Module
+- [features bpf_arena](features/bpf_arena/README.md) BPF Arena for Zero-Copy Shared Memory
+
+Other:
+
+- [lesson 49-hid](49-hid/README.md) Fixing Broken HID Devices Without Kernel Patches
+
+
+Android:
+
+- [lesson 22-android](22-android/README.md) Using eBPF Programs on Android
 
 Continuously updating...
-
-# bcc and bpftrace tutorial
-
-For reference:
-
-- [BPF Features by Linux Kernel Version](bcc-documents/kernel-versions.md)
-- [Kernel Configuration for BPF Features](bcc-documents/kernel_config.md)
-- [bcc Reference Guide](bcc-documents/reference_guide.md)
-- [Special Filtering](bcc-documents/special_filtering.md)
-- [bcc Tutorial](bcc-documents/tutorial.md)".- [bcc Python Developer Tutorial](bcc-documents/tutorial_bcc_python_developer.md)
-- [bpftrace Tutorial](bpftrace-tutorial/README.md)

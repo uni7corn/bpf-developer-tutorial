@@ -2,7 +2,7 @@ import os
 import re
 
 # Define a function to walk through the directory and generate the TOC structure
-def generate_toc(base_dir, project_root):
+def generate_toc(base_dir, project_root, output_file_dir):
     toc = "## Table of Contents\n\n"
     section_headers = {
         "Basic": "### Getting Started Examples\n\nThis section contains simple eBPF program examples and introductions. It primarily utilizes the `eunomia-bpf` framework to simplify development and introduces the basic usage and development process of eBPF.\n\n",
@@ -12,14 +12,16 @@ def generate_toc(base_dir, project_root):
 
     subsection_titles = {
         "Android": "\n\nAndroid:\n\n",
-        "Networking": "\n\nNetworking:\n\n",
-        "tracing": "\n\ntracing:\n\n",
-        "Security": "\n\nSecurity:\n\n",
+        "GPU": "\n\nGPU:\n\n",
         "Scheduler": "\n\nScheduler:\n\n",
-        "Other": "\n\nOther:\n\n"
+        "Networking": "\n\nNetworking:\n\n",
+        "Tracing": "\n\nTracing:\n\n",
+        "Security": "\n\nSecurity:\n\n",
+        "Features": "\n\nFeatures:\n\n",
+        "Other": "\nOther:\n\n"
     }
 
-    subsection_order = ['Android', 'Networking', 'tracing', 'Security', 'Scheduler', 'Other']
+    subsection_order = ['GPU', 'Scheduler', 'Networking', 'Tracing', 'Security', 'Features', 'Other', 'Android']
 
     # To ensure numeric sorting of directories
     def sort_key(directory_name):
@@ -27,8 +29,23 @@ def generate_toc(base_dir, project_root):
 
     sections = {}  # {section_level: {subsection_type: [lessons]}}
 
-    # Sort directories properly by numeric order
-    all_dirs = sorted([d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))], key=sort_key)
+    # Collect all directories including subdirectories
+    all_dirs = []
+    for item in os.listdir(base_dir):
+        item_path = os.path.join(base_dir, item)
+        if os.path.isdir(item_path):
+            # Add numbered directories directly
+            if re.match(r'^\d+', item):
+                all_dirs.append(item)
+            # Also scan subdirectories (like features/, xpu/)
+            else:
+                for subitem in os.listdir(item_path):
+                    subitem_path = os.path.join(item_path, subitem)
+                    if os.path.isdir(subitem_path):
+                        all_dirs.append(os.path.join(item, subitem))
+
+    # Sort directories properly by numeric order (non-numeric dirs go to end)
+    all_dirs = sorted(all_dirs, key=lambda d: sort_key(d) if re.search(r'\d+', d) else [999999])
 
     # Loop over the sorted directories
     for directory in all_dirs:
@@ -64,13 +81,19 @@ def generate_toc(base_dir, project_root):
                 if ":" in first_title:
                     first_title = first_title.split(":", 1)[1].strip()
 
-            # Get the relative path for the lesson
-            lesson_rel_path = os.path.relpath(readme_path, project_root)
+            # Get the relative path for the lesson (relative to the output file's directory)
+            lesson_rel_path = os.path.relpath(readme_path, output_file_dir)
 
             # Prepare lesson data
-            lesson_number = directory.split('-')[0]
-            lesson_name = directory.split('-', 1)[1]
-            link_text = f"lesson {lesson_number}-{lesson_name}"
+            # Handle both numbered lessons (e.g., "12-profile") and named lessons (e.g., "features/bpf_arena")
+            if '-' in os.path.basename(directory):
+                lesson_number = directory.split('-')[0]
+                lesson_name = directory.split('-', 1)[1]
+                link_text = f"lesson {lesson_number}-{lesson_name}"
+            else:
+                # For non-numbered directories, use the full path as name
+                link_text = directory.replace('/', ' ')
+
             link = f"{lesson_rel_path}"
             # Use description if available, else use first title
             lesson_desc = desc if desc else first_title
@@ -107,7 +130,7 @@ def generate_toc(base_dir, project_root):
 
 
 # Define a function to walk through the directory and generate the TOC structure in Chinese
-def generate_toc_cn(base_dir, project_root):
+def generate_toc_cn(base_dir, project_root, output_file_dir):
     toc = "## 目录\n\n"
     section_headers = {
         "Basic": "### 入门示例\n\n这一部分包含简单的 eBPF 程序示例和介绍。主要利用 `eunomia-bpf` 框架简化开发，介绍 eBPF 的基本用法和开发流程。\n\n",
@@ -117,14 +140,16 @@ def generate_toc_cn(base_dir, project_root):
 
     subsection_titles = {
         "Android": "Android:\n\n",
-        "Networking": "网络:\n\n",
-        "tracing": "追踪:\n\n",
-        "Security": "安全:\n\n",
+        "GPU": "GPU:\n\n",
         "Scheduler": "调度器:\n\n",
-        "Other": "其他:\n\n"
+        "Networking": "网络:\n\n",
+        "tracing": "Tracing:\n\n",
+        "Security": "安全:\n\n",
+        "Features": "特性:\n\n",
+        "Other": "特性:\n\n"
     }
 
-    subsection_order = ['Android', 'Networking', 'tracing', 'Security', 'Scheduler', 'Other']
+    subsection_order = ['GPU', 'Scheduler', 'Networking', 'tracing', 'Security', 'Features', 'Other', 'Android']
 
     # To ensure numeric sorting of directories
     def sort_key(directory_name):
@@ -132,8 +157,23 @@ def generate_toc_cn(base_dir, project_root):
 
     sections = {}  # {section_level: {subsection_type: [lessons]}}
 
-    # Sort directories properly by numeric order
-    all_dirs = sorted([d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))], key=sort_key)
+    # Collect all directories including subdirectories
+    all_dirs = []
+    for item in os.listdir(base_dir):
+        item_path = os.path.join(base_dir, item)
+        if os.path.isdir(item_path):
+            # Add numbered directories directly
+            if re.match(r'^\d+', item):
+                all_dirs.append(item)
+            # Also scan subdirectories (like features/, xpu/)
+            else:
+                for subitem in os.listdir(item_path):
+                    subitem_path = os.path.join(item_path, subitem)
+                    if os.path.isdir(subitem_path):
+                        all_dirs.append(os.path.join(item, subitem))
+
+    # Sort directories properly by numeric order (non-numeric dirs go to end)
+    all_dirs = sorted(all_dirs, key=lambda d: sort_key(d) if re.search(r'\d+', d) else [999999])
 
     # Loop over the sorted directories
     for directory in all_dirs:
@@ -169,13 +209,19 @@ def generate_toc_cn(base_dir, project_root):
                 if ":" in first_title:
                     first_title = first_title.split(":", 1)[1].strip()
 
-            # Get the relative path for the lesson
-            lesson_rel_path = os.path.relpath(readme_path, project_root)
+            # Get the relative path for the lesson (relative to the output file's directory)
+            lesson_rel_path = os.path.relpath(readme_path, output_file_dir)
 
             # Prepare lesson data
-            lesson_number = directory.split('-')[0]
-            lesson_name = directory.split('-', 1)[1]
-            link_text = f"lesson {lesson_number}-{lesson_name}"
+            # Handle both numbered lessons (e.g., "12-profile") and named lessons (e.g., "features/bpf_arena")
+            if '-' in os.path.basename(directory):
+                lesson_number = directory.split('-')[0]
+                lesson_name = directory.split('-', 1)[1]
+                link_text = f"lesson {lesson_number}-{lesson_name}"
+            else:
+                # For non-numbered directories, use the full path as name
+                link_text = directory.replace('/', ' ')
+
             link = f"{lesson_rel_path}"
             # Use description if available, else use first title
             lesson_desc = desc if desc else first_title
@@ -210,10 +256,68 @@ def generate_toc_cn(base_dir, project_root):
     toc += "\n持续更新中..."
     return toc
 
-# Example usage
-base_directory = "src/"  # Replace with the actual base directory
-project_root = "./"  # The root of the project
-toc_output = generate_toc(base_directory, project_root)
-# toc_output = generate_toc_cn(base_directory, project_root)
-# Output the TOC
-print(toc_output)
+
+def load_template(template_path):
+    """Load a template file and return its content"""
+    with open(template_path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
+def generate_file_from_template(template_path, output_path, toc_content):
+    """Generate a file from template by replacing {{TOC_CONTENT}} placeholder"""
+    template = load_template(template_path)
+    output_content = template.replace('{{TOC_CONTENT}}', toc_content)
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(output_content)
+
+    print(f"Generated: {output_path}")
+
+
+# Main execution
+if __name__ == "__main__":
+    # Get the absolute path to the script's directory
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Get the project root (parent of scripts directory)
+    project_root = os.path.dirname(script_dir)
+
+    base_directory = os.path.join(project_root, "src")
+    scripts_dir = os.path.join(project_root, "scripts")
+
+    # Generate TOC content for SUMMARY.md files (output in src/ directory)
+    toc_summary_en = generate_toc(base_directory, project_root, os.path.join(project_root, 'src'))
+    toc_summary_cn = generate_toc_cn(base_directory, project_root, os.path.join(project_root, 'src'))
+
+    # Generate TOC content for README.md files (output in project root)
+    toc_readme_en = generate_toc(base_directory, project_root, project_root)
+    toc_readme_cn = generate_toc_cn(base_directory, project_root, project_root)
+
+    # Generate SUMMARY.md from template
+    generate_file_from_template(
+        os.path.join(scripts_dir, 'SUMMARY.md.template'),
+        os.path.join(project_root, 'src', 'SUMMARY.md'),
+        toc_summary_en
+    )
+
+    # Generate SUMMARY.zh.md from template
+    generate_file_from_template(
+        os.path.join(scripts_dir, 'SUMMARY.zh.md.template'),
+        os.path.join(project_root, 'src', 'SUMMARY.zh.md'),
+        toc_summary_cn
+    )
+
+    # Generate README.md from template
+    generate_file_from_template(
+        os.path.join(scripts_dir, 'README.md.template'),
+        os.path.join(project_root, 'README.md'),
+        toc_readme_en
+    )
+
+    # Generate README.zh.md from template
+    generate_file_from_template(
+        os.path.join(scripts_dir, 'README.zh.md.template'),
+        os.path.join(project_root, 'README.zh.md'),
+        toc_readme_cn
+    )
+
+    print("\nAll files generated successfully!")

@@ -34,22 +34,23 @@ eBPF 已发展为一个多功能框架，超越了其最初的网络用途，现
   
 - **安全**：eBPF 在实时安全监控中发挥重要作用。它能够深入检查系统调用、网络流量和其他内核活动，帮助执行动态安全策略和检测异常行为，为基础设施提供高效的保护。
   
-- **调度器优化**：eBPF 越来越多地用于增强 CPU 调度，能够监控 CPU 负载并优化任务在核心之间的分配。这可以更有效地利用 CPU 资源，提高系统响应能力。
+- **调度器优化**：自 Linux 内核 6.12 起，基于 eBPF 的 CPU 调度器(sched_ext)已进入主线，允许将自定义调度策略实现为 BPF 程序。这使得运行时可定制的调度能够针对不同工作负载进行优化，无需修改内核，目前已在超过 100 万台机器上生产部署。
   
 - **HID（人机接口设备）驱动增强**：开发者使用 eBPF 优化键盘、鼠标和触摸屏等设备的 HID 驱动程序。通过为处理输入事件添加自定义逻辑，eBPF 提高了对延迟敏感应用的响应速度。
 
 各行业组织已大规模采用 eBPF：
 
-- **Google**：使用 eBPF 进行安全审计、数据包处理、实时性能监控以及优化其庞大基础设施的 CPU 调度。
+- **Google**：使用 eBPF 进行安全审计、数据包处理、实时性能监控，并正在其庞大基础设施中积极测试基于 eBPF 的 CPU 调度器。
 - **Netflix**：利用 eBPF 进行网络流量分析，确保流媒体服务的高可用性和性能。
-- **Android**：应用 eBPF 优化网络使用、功耗和资源分配，提升数百万设备的性能和电池寿命。
+- **Android**：每部 Android 手机都使用 eBPF 优化网络使用、功耗和资源分配，在全球数十亿设备上提升性能和电池寿命。
+- **Meta**：在生产环境中运行基于 eBPF 的调度器(超过 100 万台机器运行 scx_layered)，同时还使用网络负载均衡器(Katran)。
 - **S&P Global**：通过 **Cilium** 使用 eBPF 管理跨多个云和本地系统的网络，确保可扩展性和安全性。
 - **Shopify**：与 **Falco** 一起实施 eBPF 进行入侵检测，增强其电子商务平台的安全性。
 - **Cloudflare**：使用 eBPF 进行网络可观测性、安全监控和性能优化，保护全球数百万网站。
 
 eBPF 能够动态调整系统行为并扩展到用户空间，使其成为现代计算不可或缺的技术。无论是优化网络流量、提升安全性，还是增强系统性能，eBPF 都能帮助开发者高效、安全地应对实时需求。
 
-除了其内核模式运行时，eBPF 还可以扩展到用户空间。例如，[bpftime](https://github.com/eunomia-bpf/bpftime) 是一个用户空间 eBPF 运行时，允许在用户空间应用中进行高性能追踪、性能分析和插件支持。这种 eBPF 向用户空间的扩展有助于在各种超越内核级任务的用例中提高灵活性和性能。
+除了其内核模式运行时，eBPF 还可以扩展到内核之外。例如，[bpftime](https://github.com/eunomia-bpf/bpftime) 是一个用户空间 eBPF 运行时，允许在用户空间应用中进行高性能追踪(比内核 uprobe 快 10 倍)、性能分析和插件支持，且无需手动重新编译或重启进程。通过 bpftime 集成，eBPF 程序现在甚至可以卸载到 GPU，以低开销实现 GPU 内核的动态检测。这种 eBPF 超越内核空间的扩展有助于在 CPU、用户空间和 GPU 工作负载中提高灵活性和性能。
 
 ### 未来：eBPF 的扩展潜力
 
@@ -161,3 +162,13 @@ eBPF 能够动态调整系统行为并扩展到用户空间，使其成为现代
 - eunomia-bpf：<https://github.com/eunomia-bpf/eunomia-bpf>
 
 您还可以访问我们的教程代码仓库 <https://github.com/eunomia-bpf/bpf-developer-tutorial> 或网站 <https://eunomia.dev/tutorials/> 获取更多示例和完整的教程源代码。所有内容均为开源。我们将继续分享更多关于 eBPF 开发实践的内容，帮助您更好地理解和掌握 eBPF 技术。
+
+## 推荐书籍
+
+想要更系统、深入地学习 eBPF 技术？推荐《深入理解 eBPF 与可观测性》——业内首本系统性穿透 Linux 内核观测技术指南。本书由龙蜥社区多位资深专家联袂打造，深入剖析 eBPF 底层原理和开发框架，结合网络、内存、I/O、调度等六大领域，提供丰富的生产级实践代码。
+
+![书籍推荐](https://github.com/eunomia-bpf/bpf-developer-tutorial/raw/main/src/third_party/book-picture.png)
+
+欢迎关注我们的微信公众号，获取更多 eBPF 技术文章和教程更新！
+
+![微信公众号](https://github.com/eunomia-bpf/bpf-developer-tutorial/raw/main/src/third_party/wechat-qrcode.png)

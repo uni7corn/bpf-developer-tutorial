@@ -36,20 +36,17 @@ int tracepoint__syscalls__sys_enter_openat(struct trace_event_raw_sys_enter* ctx
 char LICENSE[] SEC("license") = "GPL";
 ```
 
-这段 eBPF 程序实现了：
+让我们看看代码的工作原理。首先我们引入了必要的头文件：vmlinux.h 包含内核数据结构的定义，bpf_helpers.h 包含 eBPF 所需的辅助函数。
 
-1. 引入头文件：<vmlinux.h> 包含了内核数据结构的定义，<bpf/bpf_helpers.h> 包含了 eBPF 程序所需的辅助函数。
-2. 定义全局变量 `pid_target`，用于过滤指定进程 ID。这里设为 0 表示捕获所有进程的 sys_openat 调用。
-3. 使用 `SEC` 宏定义一个 eBPF 程序，关联到 tracepoint "tracepoint/syscalls/sys_enter_openat"。这个 tracepoint 会在进程发起 `sys_openat` 系统调用时触发。
-4. 实现 eBPF 程序 `tracepoint__syscalls__sys_enter_openat`，它接收一个类型为 `struct trace_event_raw_sys_enter` 的参数 `ctx`。这个结构体包含了关于系统调用的信息。
-5. 使用 `bpf_get_current_pid_tgid()` 函数获取当前进程的 PID 和 TID（线程 ID）。由于我们只关心 PID，所以将其值右移 32 位赋值给 `u32` 类型的变量 `pid`。
-6. 检查 `pid_target` 变量是否与当前进程的 pid 相等。如果 `pid_target` 不为 0 且与当前进程的 pid 不相等，则返回 `false`，不对该进程的 `sys_openat` 调用进行捕获。
-7. 使用 `bpf_printk()` 函数打印捕获到的进程 ID 和 `sys_openat` 调用的相关信息。这些信息可以在用户空间通过 BPF 工具查看。
-8. 将程序许可证设置为 "GPL"，这是运行 eBPF 程序的必要条件。
+全局变量 `pid_target` 用于过滤指定进程 ID。注意这里使用了 `const volatile` 关键字 `const` 防止 eBPF 程序修改它，而 `volatile` 告诉编译器这个值可能会被用户空间程序修改。设为 0 表示捕获所有进程的 sys_openat 调用。
+
+我们使用 `SEC` 宏将程序关联到 tracepoint "tracepoint/syscalls/sys_enter_openat"。这个 tracepoint 会在进程发起 `sys_openat` 系统调用时触发，函数接收一个 `struct trace_event_raw_sys_enter` 类型的参数，包含了系统调用的信息。
+
+在函数中，我们使用 `bpf_get_current_pid_tgid()` 获取当前进程的 PID 和 TID（线程 ID），由于我们只关心 PID，所以将返回值右移 32 位，然后检查 `pid_target`——如果设置了特定值且不匹配当前 pid，就直接返回，不进行捕获，最后使用 `bpf_printk()` 打印捕获到的进程 ID。
 
 这个 eBPF 程序可以通过 libbpf 或 eunomia-bpf 等工具加载到内核并执行。它将捕获指定进程（或所有进程）的 sys_openat 系统调用，并在用户空间输出相关信息。
 
-eunomia-bpf 是一个结合 Wasm 的开源 eBPF 动态加载运行时和开发工具链，它的目的是简化 eBPF 程序的开发、构建、分发、运行。可以参考 <https://github.com/eunomia-bpf/eunomia-bpf> 下载和安装 ecc 编译工具链和 ecli 运行时。我们使用 eunomia-bpf 编译运行这个例子。完整代码请查看 <https://github.com/eunomia-bpf/bpf-developer-tutorial/tree/main/src/4-opensnoop> 。
+我们使用 eunomia-bpf 来编译和运行这个示例。你可以从 <https://github.com/eunomia-bpf/eunomia-bpf> 安装它。完整代码请查看 <https://github.com/eunomia-bpf/bpf-developer-tutorial/tree/main/src/4-opensnoop> 。
 
 编译运行上述代码：
 
@@ -117,7 +114,5 @@ $ sudo cat /sys/kernel/debug/tracing/trace_pipe
 本文介绍了如何使用 eBPF 程序来捕获进程打开文件的系统调用。在 eBPF 程序中，我们可以通过定义 `tracepoint__syscalls__sys_enter_open` 和 `tracepoint__syscalls__sys_enter_openat` 函数并使用 `SEC` 宏把它们附加到 sys_enter_open 和 sys_enter_openat 两个 tracepoint 来捕获进程打开文件的系统调用。我们可以使用 `bpf_get_current_pid_tgid` 函数获取调用 open 或 openat 系统调用的进程 ID，并使用 `bpf_printk` 函数在内核日志中打印出来。在 eBPF 程序中，我们还可以通过定义一个全局变量 `pid_target` 来指定要捕获的进程的 pid，从而过滤输出，只输出指定的进程的信息。
 
 通过学习本教程，您应该对如何在 eBPF 中捕获和过滤特定进程的系统调用有了更深入的了解。这种方法在系统监控、性能分析和安全审计等场景中具有广泛的应用。
-
-更多的例子和详细的开发指南，请参考 eunomia-bpf 的官方文档：<https://github.com/eunomia-bpf/eunomia-bpf>
 
 如果您希望学习更多关于 eBPF 的知识和实践，可以访问我们的教程代码仓库 <https://github.com/eunomia-bpf/bpf-developer-tutorial> 或网站 <https://eunomia.dev/zh/tutorials/> 以获取更多示例和完整的教程。
